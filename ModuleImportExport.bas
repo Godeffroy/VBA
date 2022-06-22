@@ -1,4 +1,3 @@
-Attribute VB_Name = "ModuleImportExport"
 Option Explicit
 
 'Within Excel you need to set a reference to the VB script run-time library. The relevant file is usually located at \Windows\System32\scrrun.dll
@@ -26,8 +25,11 @@ Option Explicit
 
 Public Sub Main()
 
+    Dim folder As String
     Debug.Print CreateFolder(GetPersonalPath() & "VBAProjectFiles")
-    DeleteVBAModulesAndUserForms ("ModuleImportExport")
+    folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
+    ExportModules (folder)
+    'DeleteVBAModulesAndUserForms ("ModuleImportExport")
     
 End Sub
 
@@ -78,3 +80,74 @@ Private Function DeleteVBAModulesAndUserForms(Optional Ignored As String = "")
             End If
         Next VBComp
 End Function
+
+Private Function DeleteAllFiles(szExportPath As String)
+    Kill szExportPath & "*.*"
+End Function
+
+Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFolder As Boolean = True, Optional ByVal szSourceWorkbook As String = "PERSONAL.XLSB")
+    Dim bExport As Boolean
+    Dim wkbSource As Excel.Workbook
+    Dim szFileName As String
+    Dim szExportPath As String
+    Dim cmpComponent As VBIDE.VBComponent
+    Dim ExportFolderPath As String
+    
+    szExportPath = CreateFolder(ExportPath)
+    
+    If szExportPath = "Error" Then
+        MsgBox "Export Folder does not exist"
+        Exit Sub
+    End If
+    
+    If CreateSubFolder Then
+        szExportPath = CreateFolder(ExportPath + "VBAProjectFiles")
+    
+        If szExportPath = "Error" Then
+            MsgBox "Export Folder does not exist"
+            Exit Sub
+        End If
+    End If
+        
+    'szSourceWorkbook = ActiveWorkbook.Name
+    Set wkbSource = Application.Workbooks(szSourceWorkbook)
+
+    If wkbSource.VBProject.Protection = 1 Then
+    MsgBox "The VBA in this workbook is protected," & _
+        "not possible to export the code"
+    Exit Sub
+    End If
+
+    For Each cmpComponent In wkbSource.VBProject.VBComponents
+
+        bExport = True
+        szFileName = cmpComponent.Name
+
+        ''' Concatenate the correct filename for export.
+        Select Case cmpComponent.Type
+            Case vbext_ct_ClassModule
+                szFileName = szFileName & ".cls"
+            Case vbext_ct_MSForm
+                szFileName = szFileName & ".frm"
+            Case vbext_ct_StdModule
+                szFileName = szFileName & ".bas"
+            Case vbext_ct_Document
+                ''' This is a worksheet or workbook object.
+                ''' Don't try to export.
+                bExport = False
+        End Select
+        If bExport Then
+            ''' Export the component to a text file.
+            cmpComponent.Export szExportPath & szFileName
+        ''' remove it from the project if you want
+        '''wkbSource.VBProject.VBComponents.Remove cmpComponent
+        End If
+    Next cmpComponent
+    If MsgBox("Ouvrir le dossier ?", vbQuestion + vbYesNo + vbDefaultButton2, "Export OK !") = vbYes Then
+        ''open folder path location to look at the files
+        Call Shell("explorer.exe" & " " & szExportPath, vbNormalFocus)
+    End If
+
+End Sub
+
+
