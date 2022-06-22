@@ -23,3 +23,40 @@ Option Explicit
 'In that dialog, choose Macro Settings and check the Trust access to the VBA project object model.
 'You can also try the shortcut ALT tms to go to this dialog.
 'Source : https://www.rondebruin.nl/win/s9/win002.htm
+
+public Sub Main()
+
+    MsgBox CreateFolder(GetPersonalPath() & "VBAProjectFiles")
+
+End Sub
+
+Private Function CreateFolder(SpecialPath As String) As String
+    Dim FSO As Object
+    
+    Set FSO = CreateObject("scripting.filesystemobject")
+    
+    CreateFolder = "Error"
+    
+    If Right(SpecialPath, 1) <> "\" Then
+        SpecialPath = SpecialPath & "\"
+    End If
+    
+    If FSO.FolderExists(SpecialPath) = False Then
+        On Error Resume Next
+        MkDir SpecialPath
+        On Error GoTo 0
+    End If
+    
+    If FSO.FolderExists(SpecialPath) = True Then
+        CreateFolder = SpecialPath
+    End If
+        
+End Function
+
+Private Function GetPersonalPath() As String
+    Dim WshShell As Object
+    Dim appData As String
+    Set WshShell = CreateObject("WScript.Shell")
+    appData = WshShell.expandEnvironmentStrings("%APPDATA%")
+    getPersonalPath = appData + "\Microsoft\Excel\XLSTART\"
+End Function
