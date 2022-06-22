@@ -24,10 +24,11 @@ Option Explicit
 'You can also try the shortcut ALT tms to go to this dialog.
 'Source : https://www.rondebruin.nl/win/s9/win002.htm
 
-public Sub Main()
+Public Sub Main()
 
-    MsgBox CreateFolder(GetPersonalPath() & "VBAProjectFiles")
-
+    Debug.Print CreateFolder(GetPersonalPath() & "VBAProjectFiles")
+    DeleteVBAModulesAndUserForms ("ModuleImportExport")
+    
 End Sub
 
 Private Function CreateFolder(SpecialPath As String) As String
@@ -58,5 +59,23 @@ Private Function GetPersonalPath() As String
     Dim appData As String
     Set WshShell = CreateObject("WScript.Shell")
     appData = WshShell.expandEnvironmentStrings("%APPDATA%")
-    getPersonalPath = appData + "\Microsoft\Excel\XLSTART\"
+    GetPersonalPath = appData + "\Microsoft\Excel\XLSTART\"
+End Function
+
+Private Function DeleteVBAModulesAndUserForms(Optional Ignored As String = "")
+        Dim VBProj As VBIDE.VBProject
+        Dim VBComp As VBIDE.VBComponent
+
+        Set VBProj = ActiveWorkbook.VBProject
+        Set VBProj = Application.Workbooks("PERSONAL.XLSB").VBProject
+
+        For Each VBComp In VBProj.VBComponents
+            If VBComp.Type = vbext_ct_Document Then
+                'Thisworkbook or worksheet module
+                'We do nothing
+            ElseIf (Ignored = "" Or Not VBComp.Name Like ("*" + Ignored + "*")) Then
+                'ignore modules which name contain something
+                VBProj.VBComponents.Remove VBComp
+            End If
+        Next VBComp
 End Function
