@@ -31,27 +31,26 @@ Public Sub Main()
     
 End Sub
 
-Private Function CreateFolder(SpecialPath As String) As String
-    Dim FSO As Object
-    
-    Set FSO = CreateObject("scripting.filesystemobject")
-    
+Private Function CreateFolder(FolderPath As String) As String
     CreateFolder = "Error"
-    
-    If Right(SpecialPath, 1) <> "\" Then
-        SpecialPath = SpecialPath & "\"
-    End If
-    
-    If FSO.FolderExists(SpecialPath) = False Then
+    If Not IsFolderExist(FolderPath) Then
         On Error Resume Next
-        MkDir SpecialPath
+        MkDir FolderPath
         On Error GoTo 0
     End If
-    
-    If FSO.FolderExists(SpecialPath) = True Then
-        CreateFolder = SpecialPath
+    If IsFolderExist(FolderPath) Then
+        CreateFolder = FolderPath
     End If
-        
+End Function
+
+Private Function IsFolderExist(FolderPath As String) As Boolean
+    IsFolderExist = False
+    Dim FSO As Object
+    Set FSO = CreateObject("scripting.filesystemobject")
+    If Right(FolderPath, 1) <> "\" Then
+        FolderPath = FolderPath & "\"
+    End If
+    IsFolderExist = FSO.FolderExists(FolderPath)
 End Function
 
 Private Function GetPersonalPath() As String
