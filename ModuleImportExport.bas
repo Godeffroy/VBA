@@ -31,6 +31,8 @@ Public Sub Main()
     ExportModules (folder)
     DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
     
+    ImportModules folder, True, "PERSONAL.XLSB", "ModuleImportExport"
+    
 End Sub
 
 Private Function CreateFolder(FolderPath As String) As String
@@ -146,7 +148,63 @@ Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFo
         ''open folder path location to look at the files
         Call Shell("explorer.exe" & " " & szExportPath, vbNormalFocus)
     End If
-
 End Sub
 
+Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As Boolean = True, Optional ByVal szTargetWorkbook As String = "PERSONAL.XLSB", Optional Ignored As String = "")
+    Dim wkbTarget As Excel.Workbook
+    Dim objFSO As Scripting.FileSystemObject
+    Dim objFile As Scripting.File
+    Dim cmpComponents As VBIDE.VBComponents
+    Dim szImportPath As String
+    
+    If Right(ImportPath, 1) <> "\" Then
+        ImportPath = ImportPath & "\"
+    End If
 
+    If Not IsFolderExist(ImportPath) Then
+        MsgBox "Import Folder does not exist"
+        Exit Sub
+    End If
+
+    If SubFolder Then
+        If Not IsFolderExist(ImportPath + "VBAProjectFiles") Then
+            MsgBox "Import Sub Folder does not exist"
+            Exit Sub
+        End If
+    End If
+
+    ''' NOTE: Path where the code modules are located.
+    szImportPath = ImportPath + "VBAProjectFiles"
+    
+    Set wkbTarget = Application.Workbooks(szTargetWorkbook)
+
+    If wkbTarget.VBProject.Protection = 1 Then
+    MsgBox "The VBA in this workbook is protected," & _
+        "not possible to Import the code"
+    Exit Sub
+    End If
+
+    Set objFSO = New Scripting.FileSystemObject
+    If objFSO.GetFolder(szImportPath).Files.Count = 0 Then
+        MsgBox "There are no files to import"
+        Exit Sub
+    End If
+
+    Set cmpComponents = wkbTarget.VBProject.VBComponents
+
+    ''' Import all the code modules in the specified path to the Workbook.
+    For Each objFile In objFSO.GetFolder(szImportPath).Files
+        On Error Resume Next
+        If objFile.Name Like ("*" + Ignored + "*") Then
+            'To skip modules which name contain "ModuleImportExport"
+        Else
+            If (objFSO.GetExtensionName(objFile.Name) = "cls") Or _
+                (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
+                (objFSO.GetExtensionName(objFile.Name) = "bas") Then
+                cmpComponents.Import objFile.path
+            End If
+        End If
+    Next objFile
+
+    MsgBox "Import OK !"
+End Sub
