@@ -29,7 +29,7 @@ Public Sub Main()
     Debug.Print CreateFolder(GetPersonalPath() & "VBAProjectFiles")
     folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
     ExportModules (folder)
-    'DeleteVBAModulesAndUserForms ("ModuleImportExport")
+    DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
     
 End Sub
 
@@ -63,12 +63,11 @@ Private Function GetPersonalPath() As String
     GetPersonalPath = appData + "\Microsoft\Excel\XLSTART\"
 End Function
 
-Private Function DeleteVBAModulesAndUserForms(Optional Ignored As String = "")
+Private Function DeleteVBAModulesAndUserForms(szSourceWorkbook As String, Optional Ignored As String = "")
         Dim VBProj As VBIDE.VBProject
         Dim VBComp As VBIDE.VBComponent
 
-        Set VBProj = ActiveWorkbook.VBProject
-        Set VBProj = Application.Workbooks("PERSONAL.XLSB").VBProject
+        Set VBProj = Application.Workbooks(szSourceWorkbook).VBProject
 
         For Each VBComp In VBProj.VBComponents
             If VBComp.Type = vbext_ct_Document Then
