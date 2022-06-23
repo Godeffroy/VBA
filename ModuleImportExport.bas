@@ -26,12 +26,25 @@ Option Explicit
 Public Sub Main()
 
     Dim folder As String
+    Dim urls() As Variant
+    
     Debug.Print CreateFolder(GetPersonalPath() & "VBAProjectFiles")
     folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
-    ExportModules (folder)
-    DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
+    'ExportModules (folder)
+    'DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
     
-    ImportModules folder, True, "PERSONAL.XLSB", "ModuleImportExport"
+    urls = Array( _
+           "https://drive.google.com/file/d/1P_DmnMt32gWkMop66gdHXElEhLQhZ7zl/view?usp=sharing", _
+           "https://drive.google.com/file/d/1PeZzCoY0WaeLz8pAJSXKSNibNqsFSU_w/view?usp=sharing", _
+           "https://drive.google.com/file/d/1PW8_0cj6FqyA1r4Kp9Dv0byYR0NFR4Np/view?usp=sharing", _
+           "https://drive.google.com/file/d/1Pg3EFkECQqlY2Lx7Z8RxPAepeQx68N_E/view?usp=sharing", _
+           "https://drive.google.com/file/d/1PmBBovncODg8oBiqLDVZIUlqQrSWg33G/view?usp=sharing", _
+           "https://drive.google.com/file/d/1PaFmzK-_8WW2R8UYOhDK-M78iHyQqkbu/view?usp=sharing", _
+           "https://drive.google.com/file/d/1PkqSzsPJiLNUdyndH7wBx-WOs_TywgwO/view?usp=sharing")
+    
+    DownloadGoogleDriveWithFilename folder, urls
+
+    'ImportModules folder, True, "PERSONAL.XLSB", "ModuleImportExport"
     
 End Sub
 
@@ -66,20 +79,20 @@ Private Function GetPersonalPath() As String
 End Function
 
 Private Function DeleteVBAModulesAndUserForms(szSourceWorkbook As String, Optional Ignored As String = "")
-        Dim VBProj As VBIDE.VBProject
-        Dim VBComp As VBIDE.VBComponent
+    Dim VBProj As VBIDE.VBProject
+    Dim VBComp As VBIDE.VBComponent
 
-        Set VBProj = Application.Workbooks(szSourceWorkbook).VBProject
+    Set VBProj = Application.Workbooks(szSourceWorkbook).VBProject
 
-        For Each VBComp In VBProj.VBComponents
-            If VBComp.Type = vbext_ct_Document Then
-                'Thisworkbook or worksheet module
-                'We do nothing
-            ElseIf (Ignored = "" Or Not VBComp.Name Like ("*" + Ignored + "*")) Then
-                'ignore modules which name contain something
-                VBProj.VBComponents.Remove VBComp
-            End If
-        Next VBComp
+    For Each VBComp In VBProj.VBComponents
+        If VBComp.Type = vbext_ct_Document Then
+            'Thisworkbook or worksheet module
+            'We do nothing
+        ElseIf (Ignored = "" Or Not VBComp.Name Like ("*" + Ignored + "*")) Then
+            'ignore modules which name contain something
+            VBProj.VBComponents.Remove VBComp
+        End If
+    Next VBComp
 End Function
 
 Private Function DeleteAllFiles(szExportPath As String)
@@ -114,9 +127,9 @@ Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFo
     Set wkbSource = Application.Workbooks(szSourceWorkbook)
 
     If wkbSource.VBProject.Protection = 1 Then
-    MsgBox "The VBA in this workbook is protected," & _
-        "not possible to export the code"
-    Exit Sub
+        MsgBox "The VBA in this workbook is protected," & _
+               "not possible to export the code"
+        Exit Sub
     End If
 
     For Each cmpComponent In wkbSource.VBProject.VBComponents
@@ -126,22 +139,22 @@ Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFo
 
         ''' Concatenate the correct filename for export.
         Select Case cmpComponent.Type
-            Case vbext_ct_ClassModule
-                szFileName = szFileName & ".cls"
-            Case vbext_ct_MSForm
-                szFileName = szFileName & ".frm"
-            Case vbext_ct_StdModule
-                szFileName = szFileName & ".bas"
-            Case vbext_ct_Document
-                ''' This is a worksheet or workbook object.
-                ''' Don't try to export.
-                bExport = False
+        Case vbext_ct_ClassModule
+            szFileName = szFileName & ".cls"
+        Case vbext_ct_MSForm
+            szFileName = szFileName & ".frm"
+        Case vbext_ct_StdModule
+            szFileName = szFileName & ".bas"
+        Case vbext_ct_Document
+            ''' This is a worksheet or workbook object.
+            ''' Don't try to export.
+            bExport = False
         End Select
         If bExport Then
             ''' Export the component to a text file.
             cmpComponent.Export szExportPath & szFileName
-        ''' remove it from the project if you want
-        '''wkbSource.VBProject.VBComponents.Remove cmpComponent
+            ''' remove it from the project if you want
+            '''wkbSource.VBProject.VBComponents.Remove cmpComponent
         End If
     Next cmpComponent
     If MsgBox("Ouvrir le dossier ?", vbQuestion + vbYesNo + vbDefaultButton2, "Export OK !") = vbYes Then
@@ -179,9 +192,9 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
     Set wkbTarget = Application.Workbooks(szTargetWorkbook)
 
     If wkbTarget.VBProject.Protection = 1 Then
-    MsgBox "The VBA in this workbook is protected," & _
-        "not possible to Import the code"
-    Exit Sub
+        MsgBox "The VBA in this workbook is protected," & _
+               "not possible to Import the code"
+        Exit Sub
     End If
 
     Set objFSO = New Scripting.FileSystemObject
@@ -199,8 +212,8 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
             'To skip modules which name contain "ModuleImportExport"
         Else
             If (objFSO.GetExtensionName(objFile.Name) = "cls") Or _
-                (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
-                (objFSO.GetExtensionName(objFile.Name) = "bas") Then
+                                                               (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
+                                                               (objFSO.GetExtensionName(objFile.Name) = "bas") Then
                 cmpComponents.Import objFile.path
             End If
         End If
@@ -208,3 +221,137 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
 
     MsgBox "Import OK !"
 End Sub
+
+Private Function FileExists(FilePath As String) As Boolean
+    Dim TestStr As String
+    TestStr = ""
+    On Error Resume Next
+    TestStr = Dir(FilePath)
+    On Error GoTo 0
+    If TestStr = "" Then
+        FileExists = False
+    Else
+        FileExists = True
+    End If
+End Function
+
+Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, myOriginalURLs() As Variant, Optional ByVal CreateSubFolder As Boolean = True) As Boolean
+    Dim myURL As String
+    Dim FileID As String
+    Dim xmlhttp As Object
+    Dim FolderPath As String
+    Dim FilePath As String
+    Dim name0 As Variant
+    Dim oStream As Object
+
+    Dim myOriginalURL As Variant
+    Dim xmlhttptemp As Variant
+    Dim myXmlhttps() As Object
+    Dim TimeOut As Single
+
+    Dim objFSO As Scripting.FileSystemObject
+    Dim message As String
+    Dim result As Boolean
+    Dim time As String
+
+    DownloadGoogleDriveWithFilename = False
+    Application.ScreenUpdating = False
+    Debug.Print "Starting ..."
+    'URL from share link or Google sheet URL or Google doc URL
+    Dim i As Integer
+    i = 0
+        
+    FolderPath = CreateFolder(DownloadPath)
+    
+    If FolderPath = "Error" Then
+        MsgBox "Export Folder does not exist"
+        Exit Function
+    End If
+    
+    If CreateSubFolder Then
+        FolderPath = CreateFolder(FolderPath + "VBAProjectFiles")
+    
+        If FolderPath = "Error" Then
+            MsgBox "Download Folder does not exist"
+            Exit Function
+        End If
+    End If
+     
+    For Each myOriginalURL In myOriginalURLs
+    
+        ReDim Preserve myXmlhttps(1 To i + 1) As Object
+    
+        FileID = Split(myOriginalURL, "/d/")(1)  ''split after "/d/"
+        FileID = Split(FileID, "/")(0)           ''split before "/"
+        'Const UrlLeft As String = "http://drive.google.com/u/0/uc?id="
+        Const UrlLeft As String = "http://drive.google.com/uc?id="
+        Const UrlRight As String = "&export=download&confirm=t"
+        myURL = UrlLeft & FileID & UrlRight
+        Debug.Print myURL
+
+        'Set xmlhttp = CreateObject("winhttp.winhttprequest.5.1")
+        Set myXmlhttps(i + 1) = CreateObject("Msxml2.ServerXMLHTTP.6.0") 'New MSXML2.ServerXMLHTTP60 '
+        
+        myXmlhttps(i + 1).Open "GET", myURL, True ', "economat@asja.mg", "Asjaeco2022"
+        myXmlhttps(i + 1).Send
+        'Set myXmlhttps(i + 1) = xmlhttp
+        i = i + 1
+    Next myOriginalURL
+
+    For Each xmlhttptemp In myXmlhttps
+        TimeOut = Timer
+   
+        Do While xmlhttptemp.readyState <> 4     'And xmlhttptemp.Status <> 200
+            If (Timer - TimeOut > 10) Then
+                MsgBox "TimeOut : " & Timer - TimeOut & " ReadyState=" & xmlhttptemp.readyState
+                Exit Function                    'Do
+            End If
+            DoEvents
+            Application.Wait (Now + TimeValue("00:00:01"))
+        Loop
+        Debug.Print Timer - TimeOut & " ReadyState=" & xmlhttptemp.readyState & " Status=" & xmlhttptemp.Status
+
+        If xmlhttptemp.Status = 200 Then
+            name0 = xmlhttptemp.getResponseHeader("Content-Disposition")
+            If name0 = "" Then
+                MsgBox "file name not found"
+                Exit Function
+            End If
+        
+            Debug.Print name0
+            name0 = Split(name0, "=""")(1) ''split after "=""
+            name0 = Split(name0, """;")(0)  ''split before "";"
+            '        name0 = Replace(name0, """", "") ' Remove double quotes
+            Debug.Print name0
+        
+            FilePath = FolderPath & name0
+            ''This part is equivalent to URLDownloadToFile(0, myURL, FolderPath & "\" & name0, 0, 0)
+            ''just without having to write Windows API code for 32 bit and 64 bit.
+        
+            Set oStream = CreateObject("ADODB.Stream")
+            oStream.Open
+            oStream.Type = 1
+            oStream.Write xmlhttptemp.responseBody
+            oStream.SaveToFile FilePath, 2       ' 1 = no overwrite, 2 = overwrite
+            oStream.Close
+        End If
+    Next xmlhttptemp
+
+    Application.ScreenUpdating = True
+  
+    Set objFSO = New Scripting.FileSystemObject
+    If objFSO.GetFolder(FolderPath).Files.Count = i Then
+        message = "Download OK !"
+        DownloadGoogleDriveWithFilename = True
+    Else
+        message = "Download Failed !"
+    End If
+
+    If MsgBox("Ouvrir le dossier ?", vbQuestion + vbYesNo + vbDefaultButton2, message) = vbYes Then
+        ''open folder path location to look at the files
+        Call Shell("explorer.exe" & " " & FolderPath, vbNormalFocus)
+    End If
+    Debug.Print "-- End --"
+End Function
+
+
