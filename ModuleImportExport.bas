@@ -243,6 +243,8 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
     Dim FilePath As String
     Dim name0 As Variant
     Dim oStream As Object
+    Dim user As String
+    Dim mdp As String
 
     Dim myOriginalURL As Variant
     Dim xmlhttptemp As Variant
@@ -260,6 +262,12 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
     'URL from share link or Google sheet URL or Google doc URL
     Dim i As Integer
     i = 0
+    user = ""
+    mdp = ""
+    user = InputBox("adresse gmail")
+    If user <> "" Then
+        mdp = InputBox("adresse gmail")
+    End If
         
     FolderPath = CreateFolder(DownloadPath)
     
@@ -292,12 +300,13 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
         'Set xmlhttp = CreateObject("winhttp.winhttprequest.5.1")
         Set myXmlhttps(i + 1) = CreateObject("Msxml2.ServerXMLHTTP.6.0") 'New MSXML2.ServerXMLHTTP60 '
         
-        myXmlhttps(i + 1).Open "GET", myURL ', True, "economat@asja.mg", "Asjaeco2022"
+        myXmlhttps(i + 1).Open "GET", myURL
         
         myXmlhttps(i + 1).setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
         myXmlhttps(i + 1).setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
-        myXmlhttps(i + 1).setRequestHeader "Authorization", "Basic " + Base64Encode("economat@asja.mg" + ":" + "Asjaeco2022")
-    
+        If user <> "" And mdp <> "" Then
+            myXmlhttps(i + 1).setRequestHeader "Authorization", "Basic " + Base64Encode(user + ":" + mdp)
+        End If
         myXmlhttps(i + 1).Send
         'Set myXmlhttps(i + 1) = xmlhttp
         i = i + 1
