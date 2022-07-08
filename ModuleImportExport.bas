@@ -23,30 +23,54 @@ Option Explicit
 'You can also try the shortcut ALT tms to go to this dialog.
 'Source : https://www.rondebruin.nl/win/s9/win002.htm
 
-Public Sub Main()
+Public Sub ExporterModules()
+    Dim folder As String
+    folder = GetFolder()
+    If folder <> "" Then
+        ExportModules folder
+    Else
+        'folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
+    End If
+End Sub
 
+Public Sub ImporterModules()
+    Dim folder As String
+    folder = GetFolder()
+    If folder <> "" Then
+        ImportModules folder, "PERSONAL.XLSB", "ModuleImportExport"
+    Else
+        'folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
+    End If
+End Sub
+
+Public Sub TéléchargerModules()
     Dim folder As String
     Dim urls() As Variant
-    
-    Debug.Print CreateFolder(GetPersonalPath() & "VBAProjectFiles")
-    folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
-    'ExportModules (folder)
-    'DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
-    
-    urls = Array( _
-           "https://drive.google.com/file/d/1P_DmnMt32gWkMop66gdHXElEhLQhZ7zl/view?usp=sharing", _
-           "https://drive.google.com/file/d/1PeZzCoY0WaeLz8pAJSXKSNibNqsFSU_w/view?usp=sharing", _
-           "https://drive.google.com/file/d/1PW8_0cj6FqyA1r4Kp9Dv0byYR0NFR4Np/view?usp=sharing", _
-           "https://drive.google.com/file/d/1Pg3EFkECQqlY2Lx7Z8RxPAepeQx68N_E/view?usp=sharing", _
-           "https://drive.google.com/file/d/1PmBBovncODg8oBiqLDVZIUlqQrSWg33G/view?usp=sharing", _
-           "https://drive.google.com/file/d/1PaFmzK-_8WW2R8UYOhDK-M78iHyQqkbu/view?usp=sharing", _
-           "https://drive.google.com/file/d/1PkqSzsPJiLNUdyndH7wBx-WOs_TywgwO/view?usp=sharing")
-    
-    DownloadGoogleDriveWithFilename folder, urls
-
-    'ImportModules folder, True, "PERSONAL.XLSB", "ModuleImportExport"
-    
+    folder = GetFolder()
+    If folder <> "" Then
+        urls = Array( _
+           "https://drive.google.com/file/d/1PmBBovncODg8oBiqLDVZIUlqQrSWg33G/view?usp=sharing")
+        DownloadGoogleDriveWithFilename folder, urls
+    Else
+        'folder = Environ("Temp") & "\VBAProjectFiles-" & Replace(Replace(Replace(Now(), " ", "-"), ":", "-"), "/", "-") & "\"
+    End If
 End Sub
+
+Private Function GetFolder() As String
+Dim fldr As FileDialog
+Dim sItem As String
+Set fldr = Application.FileDialog(msoFileDialogFolderPicker)
+With fldr
+    .Title = "Sélectionner un dossier"
+    .AllowMultiSelect = False
+    '.InitialFileName = strPath
+    If .Show <> -1 Then GoTo NextCode
+    sItem = .SelectedItems(1)
+End With
+NextCode:
+GetFolder = sItem
+Set fldr = Nothing
+End Function
 
 Private Function CreateFolder(FolderPath As String) As String
     CreateFolder = "Error"
@@ -107,11 +131,8 @@ Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFo
     Dim cmpComponent As VBIDE.VBComponent
     Dim ExportFolderPath As String
     
-    szExportPath = CreateFolder(ExportPath)
-    
-    If szExportPath = "Error" Then
-        MsgBox "Export Folder does not exist"
-        Exit Sub
+    If Right(ExportPath, 1) <> "\" Then
+        ExportPath = ExportPath & "\"
     End If
     
     If CreateSubFolder Then
@@ -163,15 +184,16 @@ Private Sub ExportModules(ByVal ExportPath As String, Optional ByVal CreateSubFo
     End If
 End Sub
 
-Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As Boolean = True, Optional ByVal szTargetWorkbook As String = "PERSONAL.XLSB", Optional Ignored As String = "")
+Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal szTargetWorkbook As String = "PERSONAL.XLSB", Optional Ignored As String = "")
     Dim wkbTarget As Excel.Workbook
     Dim objFSO As Scripting.FileSystemObject
     Dim objFile As Scripting.File
     Dim cmpComponents As VBIDE.VBComponents
     Dim szImportPath As String
+    Dim nbFiles As Integer
     
     If Right(ImportPath, 1) <> "\" Then
-        ImportPath = ImportPath & "\"
+        szImportPath = ImportPath & "\"
     End If
 
     If Not IsFolderExist(ImportPath) Then
@@ -179,16 +201,6 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
         Exit Sub
     End If
 
-    If SubFolder Then
-        If Not IsFolderExist(ImportPath + "VBAProjectFiles") Then
-            MsgBox "Import Sub Folder does not exist"
-            Exit Sub
-        End If
-    End If
-
-    ''' NOTE: Path where the code modules are located.
-    szImportPath = ImportPath + "VBAProjectFiles"
-    
     Set wkbTarget = Application.Workbooks(szTargetWorkbook)
 
     If wkbTarget.VBProject.Protection = 1 Then
@@ -196,13 +208,28 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
                "not possible to Import the code"
         Exit Sub
     End If
-
+    
     Set objFSO = New Scripting.FileSystemObject
-    If objFSO.GetFolder(szImportPath).Files.Count = 0 Then
+    nbFiles = 0
+        For Each objFile In objFSO.GetFolder(szImportPath).Files
+            On Error Resume Next
+            If objFile.Name Like ("*" + Ignored + "*") Then
+                'To skip modules which name contain "ModuleImportExport"
+            Else
+                If (objFSO.GetExtensionName(objFile.Name) = "cls") Or _
+                    (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
+                    (objFSO.GetExtensionName(objFile.Name) = "bas") Then
+                    nbFiles = nbFiles + 1
+                End If
+            End If
+        Next objFile
+    If nbFiles = 0 Then
         MsgBox "There are no files to import"
         Exit Sub
     End If
-
+    
+    DeleteVBAModulesAndUserForms "PERSONAL.XLSB", "ModuleImportExport"
+        
     Set cmpComponents = wkbTarget.VBProject.VBComponents
 
     ''' Import all the code modules in the specified path to the Workbook.
@@ -212,8 +239,8 @@ Public Sub ImportModules(ByVal ImportPath As String, Optional ByVal SubFolder As
             'To skip modules which name contain "ModuleImportExport"
         Else
             If (objFSO.GetExtensionName(objFile.Name) = "cls") Or _
-                                                               (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
-                                                               (objFSO.GetExtensionName(objFile.Name) = "bas") Then
+                (objFSO.GetExtensionName(objFile.Name) = "frm") Or _
+                (objFSO.GetExtensionName(objFile.Name) = "bas") Then
                 cmpComponents.Import objFile.path
             End If
         End If
@@ -245,7 +272,7 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
     Dim oStream As Object
     Dim user As String
     Dim mdp As String
-
+    
     Dim myOriginalURL As Variant
     Dim xmlhttptemp As Variant
     Dim myXmlhttps() As Object
@@ -268,7 +295,7 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
     If user <> "" Then
         mdp = InputBox("adresse gmail")
     End If
-        
+    
     FolderPath = CreateFolder(DownloadPath)
     
     If FolderPath = "Error" Then
