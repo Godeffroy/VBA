@@ -292,7 +292,12 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
         'Set xmlhttp = CreateObject("winhttp.winhttprequest.5.1")
         Set myXmlhttps(i + 1) = CreateObject("Msxml2.ServerXMLHTTP.6.0") 'New MSXML2.ServerXMLHTTP60 '
         
-        myXmlhttps(i + 1).Open "GET", myURL, True ', "economat@asja.mg", "Asjaeco2022"
+        myXmlhttps(i + 1).Open "GET", myURL ', True, "economat@asja.mg", "Asjaeco2022"
+        
+        myXmlhttps(i + 1).setRequestHeader "Content-Type", "application/x-www-form-urlencoded"
+        myXmlhttps(i + 1).setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0"
+        myXmlhttps(i + 1).setRequestHeader "Authorization", "Basic " + Base64Encode("economat@asja.mg" + ":" + "Asjaeco2022")
+    
         myXmlhttps(i + 1).Send
         'Set myXmlhttps(i + 1) = xmlhttp
         i = i + 1
@@ -355,3 +360,78 @@ Private Function DownloadGoogleDriveWithFilename(ByVal DownloadPath As String, m
 End Function
 
 
+Function Base64Encode(sText)
+    Dim oXML, oNode
+    Set oXML = CreateObject("Msxml2.DOMDocument.3.0")
+    Set oNode = oXML.createElement("base64")
+    oNode.DataType = "bin.base64"
+    oNode.nodeTypedValue = Stream_StringToBinary(sText)
+    Base64Encode = oNode.Text
+    Set oNode = Nothing
+    Set oXML = Nothing
+End Function
+
+
+'Stream_StringToBinary Function
+'2003 Antonin Foller, http://www.motobit.com
+'Text - string parameter To convert To binary data
+Function Stream_StringToBinary(Text)
+  Const adTypeText = 2
+  Const adTypeBinary = 1
+
+  'Create Stream object
+  Dim BinaryStream 'As New Stream
+  Set BinaryStream = CreateObject("ADODB.Stream")
+
+  'Specify stream type - we want To save text/string data.
+  BinaryStream.Type = adTypeText
+
+  'Specify charset For the source text (unicode) data.
+  BinaryStream.Charset = "us-ascii"
+
+  'Open the stream And write text/string data To the object
+  BinaryStream.Open
+  BinaryStream.WriteText Text
+
+  'Change stream type To binary
+  BinaryStream.Position = 0
+  BinaryStream.Type = adTypeBinary
+
+  'Ignore first two bytes - sign of
+  BinaryStream.Position = 0
+
+  'Open the stream And get binary data from the object
+  Stream_StringToBinary = BinaryStream.Read
+
+  Set BinaryStream = Nothing
+End Function
+
+'Stream_BinaryToString Function
+'2003 Antonin Foller, http://www.motobit.com
+'Binary - VT_UI1 | VT_ARRAY data To convert To a string
+Function Stream_BinaryToString(Binary)
+  Const adTypeText = 2
+  Const adTypeBinary = 1
+
+  'Create Stream object
+  Dim BinaryStream 'As New Stream
+  Set BinaryStream = CreateObject("ADODB.Stream")
+
+  'Specify stream type - we want To save text/string data.
+  BinaryStream.Type = adTypeBinary
+
+  'Open the stream And write text/string data To the object
+  BinaryStream.Open
+  BinaryStream.Write Binary
+
+  'Change stream type To binary
+  BinaryStream.Position = 0
+  BinaryStream.Type = adTypeText
+
+  'Specify charset For the source text (unicode) data.
+  BinaryStream.Charset = "us-ascii"
+
+  'Open the stream And get binary data from the object
+  Stream_BinaryToString = BinaryStream.ReadText
+  Set BinaryStream = Nothing
+End Function
